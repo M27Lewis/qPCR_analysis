@@ -1,7 +1,6 @@
 library(tidyverse)
 library(readxl)
 library(writexl)
-#library(ggsignif)
 library(RColorBrewer)
 library(broom)
 library(DescTools)
@@ -46,7 +45,20 @@ theme_Publication <- function(base_size=14, base_family="sans") {
 data <- "data/raw/2023-03-27_131117_NT_SE66_CasRx_eRNA_MKLN1_ROX.xls"
 
 # Name the experiment
-experiment <- "NT1_SE66_CasRx_Array_eRNA_MKLN1_ROX"
+experiment <- "SE66_CasRx_Array_eRNA_MKLN1_ROX"
+
+# Create directories to save output files
+plots_path <- file.path(paste0("plots/", Sys.Date(), "_", experiment))
+
+if(!dir.exists(plots_path)){
+  dir.create(plots_path)
+}
+
+tables_path <- file.path(paste0("tables/", Sys.Date(), "_", experiment))
+
+if(!dir.exists(tables_path)){
+  dir.create(tables_path)
+}
 
 # Assign name of control reference sample
 ctrl <- "NT1"
@@ -133,7 +145,7 @@ for (i in 1:length(test_list)){
     select(sample, rep, primer, delta_Ct, delta_delta_Ct, rel_conc) |> 
     rename(Fold_change = rel_conc)
   
-  write_tsv(results_exp, paste("tables/", Sys.Date(), "_", names(test_list)[i], "-", experiment, "_fold_change_results", ".txt", sep = ""))
+  write_tsv(results_exp, paste(tables_path, "/", names(test_list)[i], "-", experiment, "_fold_change_results", ".txt", sep = ""))
   
   #Statistical Tests and export results
   #pairwise t-tests
@@ -142,7 +154,7 @@ for (i in 1:length(test_list)){
   
   tt_pval <- cbind(" "=rownames(ttest_results$p.value), ttest_results$p.value)
   
-  write_tsv(as.data.frame(tt_pval), paste("tables/", Sys.Date(), "_", names(test_list)[i], "-", experiment, "_t-test_p-values_BH_correction", ".txt", sep = ""))
+  write_tsv(as.data.frame(tt_pval), paste(tables_path, "/", names(test_list)[i], "-", experiment, "_t-test_p-values_BH_correction", ".txt", sep = ""))
   
   #Dunnett's test as a post-hoc to compare to control
   final_data$sample <- relevel(final_data$sample, ctrl)
@@ -154,7 +166,7 @@ for (i in 1:length(test_list)){
     rename("p_val" = "pval")
   dtpvs$sample <- substr(dtpvs$sample, 1, nchar(dtpvs$sample) - (nchar(ctrl) + 1))
   
-  write_tsv(as.data.frame(dtpvs), paste("tables/", Sys.Date(), "_", names(test_list)[i], "-", experiment, "_Dunnetts_test_results", ".txt", sep = ""))
+  write_tsv(as.data.frame(dtpvs), paste(tables_path, "/", names(test_list)[i], "-", experiment, "_Dunnetts_test_results", ".txt", sep = ""))
   
   #One-way ANOVA Test
   res.aov <- aov(delta_Ct ~ sample, data = final_data)
@@ -163,7 +175,7 @@ for (i in 1:length(test_list)){
   #Tukey multiple pairwise comparison
   tuk_results <- tidy(TukeyHSD(res.aov))
   
-  write_tsv(as.data.frame(tuk_results), paste("tables/", Sys.Date(), "_", names(test_list)[i], "-", experiment, "_tukey_test_results", ".txt", sep = ""))
+  write_tsv(as.data.frame(tuk_results), paste(tables_path, "/", names(test_list)[i], "-", experiment, "_tukey_test_results", ".txt", sep = ""))
   
   #Join final data with pvals from Dunnett Test
   final_summ_data <- left_join(final_summ_data, dtpvs, by = "sample")
@@ -191,7 +203,7 @@ for (i in 1:length(test_list)){
     scale_color_brewer(palette = "Dark2") +
     theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
   
-  ggsave(paste("plots/", Sys.Date(), "_", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 3, height = 4, units = "in", dpi = 600)
-  ggsave(paste("plots/", Sys.Date(), "_", names(test_list)[i], "-", experiment, ".pdf", sep = ""), plot = p1, width = 3, height = 4, units = "in", dpi = 600)
+  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 3, height = 4, units = "in", dpi = 600)
+  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".pdf", sep = ""), plot = p1, width = 3, height = 4, units = "in", dpi = 600)
   
 }
