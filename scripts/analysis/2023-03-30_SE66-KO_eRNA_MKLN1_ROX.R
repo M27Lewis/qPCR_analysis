@@ -45,7 +45,7 @@ theme_Publication <- function(base_size=14, base_family="sans") {
 data <- "data/raw/2023-03-30_132510_SE66-KO_eRNA_MKLN1_ROX.xls"
 
 # Name the experiment
-experiment <- "SE66-KO_eRNA_MKLN1_ROX"
+experiment <- "SE66-KO_eRNA_MKLN1_ROX_GAPDH_only"
 
 # Create directories to save output files
 plots_path <- file.path(paste0("plots/", Sys.Date(), "_", experiment))
@@ -64,7 +64,7 @@ if(!dir.exists(tables_path)){
 ctrl <- "WT"
 
 # Assign names of housekeeping normalization gene(s)
-ref <- c("GAPDH", "B-Actin")
+ref <- c("GAPDH")
 
 # Clean up data
 qpcr_data <- read_excel(data, sheet = "Results", skip = 44, col_names = TRUE) |> 
@@ -74,6 +74,9 @@ qpcr_data <- read_excel(data, sheet = "Results", skip = 44, col_names = TRUE) |>
   separate(`Well Position`, into = c("row", "column"), sep = 1, convert = TRUE) |> 
   rename(primer = `Target Name`) |> 
   mutate(CT = as.numeric(na_if(CT, "Undetermined"))) #Converts "Undetermined" wells to "NA" and resets class to numeric
+
+#qpcr_data <- qpcr_data |> 
+  #filter(!primer == "GAPDH") #Remove GAPDH for analysis
 
 # Visualize plate layout
 ggplot(qpcr_data, aes(x = column, y = row, fill = primer, label = `Sample Name`)) +
@@ -103,13 +106,15 @@ if (length(ref) > 1) {
     filter(primer == ref[2]) |> 
     rename("ref2_Ct" = "mean_Ct")
   
-  ref_data <- left_join(ref1_data, ref2_data, by = c("sample", "rep"))
+  ref_data <- left_join(ref1_data, ref2_data, by = c("sample", "rep")) |> 
+    select(!ends_with(".x") | ends_with(".y"))
   
   ref_data$ref_Ct <- rowMeans(subset(ref_data, select = c(ref1_Ct, ref2_Ct)), na.rm = TRUE)
 } else {
   ref_data <- summ_data |> 
     filter(primer == ref) |> 
-    rename("ref_Ct" = "mean_Ct")
+    rename("ref_Ct" = "mean_Ct") |> 
+    select(!primer)
 }
 
 # Loop through data and analyze to create plots and perform statistical analysis of results
@@ -120,7 +125,7 @@ test_list <- split(test_data, test_data$primer)
 
 for (i in 1:length(test_list)){
   df_i <- test_list[[i]]
-  combined_data <- merge(df_i, ref_data, by = c("sample", "rep")) |>
+  combined_data <-  merge(df_i, ref_data, by = c("sample", "rep")) |>
     mutate(delta_Ct = mean_Ct - ref_Ct)
   
   treatment_summary <- combined_data |> 
@@ -224,4 +229,4 @@ p2 <- ggplot(qpcr_data_PODe1, mapping = aes(x = fct_reorder(sample, CT, .desc = 
   labs(x = "") +
   theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
   
-ggsave(paste(plots_path, "/KO_vs_NTC_RT-", experiment, ".png", sep = ""), plot = p2, width = 4, height = 4, units = "in", dpi = 600)
+#ggsave(paste(plots_path, "/KO_vs_NTC_RT-", experiment, ".png", sep = ""), plot = p2, width = 4, height = 4, units = "in", dpi = 600)
