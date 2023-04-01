@@ -194,7 +194,7 @@ for (i in 1:length(test_list)){
     )
   
   p1 <- ggplot(final_data, aes(x = sample, y = rel_conc)) +
-    geom_bar(final_summ_data, mapping = aes(x = fct_reorder(sample, rel_conc, .desc = TRUE), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
+    geom_bar(final_summ_data, mapping = aes(x = factor(sample, level = c("NT", "3A", "20A", "111A", "1B", "SE66")), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
     geom_point(final_data, mapping = aes(sample, rel_conc, fill = sample), size = 2, shape = 21, color = "black", alpha = 0.5, stroke = 0.5) +
     geom_errorbar(final_summ_data, mapping = aes(sample, rel_conc, ymin = rel_conc - sem, ymax = rel_conc + sem), color = "black", width = 0.2) +
     geom_text(final_summ_data, mapping = aes(label = label), nudge_y = 0.2) +
