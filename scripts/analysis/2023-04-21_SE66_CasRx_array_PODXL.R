@@ -42,10 +42,10 @@ theme_Publication <- function(base_size=14, base_family="sans") {
 ############################
 
 # Define pathway to the qPCR data
-data <- "data/raw/2023-03-27_131117_NT_SE66_CasRx_eRNA_MKLN1_ROX.xls"
+data <- "data/raw/2023-01-05_132806_CasRx_Array_PODXL.xls"
 
 # Name the experiment
-experiment <- "SE66_CasRx_Array_eRNA_MKLN1_ROX"
+experiment <- "SE66_CasRx_Array_PODXL"
 
 # Create directories to save output files
 plots_path <- file.path(paste0("plots/", Sys.Date(), "_", experiment))
@@ -61,7 +61,7 @@ if(!dir.exists(tables_path)){
 }
 
 # Assign name of control reference sample
-ctrl <- "NT1"
+ctrl <- "NT-1"
 
 # Assign names of housekeeping normalization gene(s)
 ref <- c("GAPDH", "B-Actin")
@@ -80,6 +80,10 @@ ggplot(qpcr_data, aes(x = column, y = row, fill = primer, label = `Sample Name`)
   geom_text() +
   scale_y_discrete(limits = c("P", "O", "N", "M", "L", "K", "J", "I", "H", "G", "F", "E", "D", "C", "B", "A")) +
   scale_x_continuous(breaks = 1:24)
+
+qpcr_data <- qpcr_data |> 
+  filter(!grepl("SE6 ", `Sample Name`, ignore.case = TRUE)) |> 
+  filter(!grepl("NT-4", `Sample Name`, ignore.case = TRUE))
 
 # Summarise and clean up data further
 summ_data <- qpcr_data |> 
@@ -192,16 +196,16 @@ for (i in 1:length(test_list)){
     )
   
   p1 <- ggplot(final_data, aes(x = sample, y = rel_conc)) +
-    geom_bar(final_summ_data, mapping = aes(x = factor(sample, level = c("NT1", "SE66")), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
+    geom_bar(final_summ_data, mapping = aes(x = factor(sample, level = c("NT-1", "SE66")), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
     geom_point(final_data, mapping = aes(sample, rel_conc, fill = sample), size = 2, shape = 21, color = "black", alpha = 0.5, stroke = 0.5) +
     geom_errorbar(final_summ_data, mapping = aes(sample, rel_conc, ymin = rel_conc - sem, ymax = rel_conc + sem), color = "black", width = 0.2) +
     geom_text(final_summ_data, mapping = aes(label = label), nudge_y = 0.2) +
     scale_y_continuous(expand = expansion(mult = c(0, .1))) +
     labs(x = "", y = "Relative Expression", title = paste(names(test_list)[i], "\n Expression", sep = "")) +
     theme_Publication() +
-    scale_fill_manual(values = c("NT1" = "gray30",
+    scale_fill_manual(values = c("NT-1" = "gray30",
                                  "SE66" = "red")) +
-    scale_color_manual(values = c("NT1" = "gray30",
+    scale_color_manual(values = c("NT-1" = "gray30",
                                   "SE66" = "red")) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
   

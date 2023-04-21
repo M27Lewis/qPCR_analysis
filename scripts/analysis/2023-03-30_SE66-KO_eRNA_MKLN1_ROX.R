@@ -45,7 +45,7 @@ theme_Publication <- function(base_size=14, base_family="sans") {
 data <- "data/raw/2023-03-30_132510_SE66-KO_eRNA_MKLN1_ROX.xls"
 
 # Name the experiment
-experiment <- "SE66-KO_eRNA_MKLN1_ROX_GAPDH_only"
+experiment <- "SE66-KO_eRNA_MKLN1_ROX"
 
 # Create directories to save output files
 plots_path <- file.path(paste0("plots/", Sys.Date(), "_", experiment))
@@ -64,7 +64,7 @@ if(!dir.exists(tables_path)){
 ctrl <- "WT"
 
 # Assign names of housekeeping normalization gene(s)
-ref <- c("GAPDH")
+ref <- c("B-Actin", "GAPDH")
 
 # Clean up data
 qpcr_data <- read_excel(data, sheet = "Results", skip = 44, col_names = TRUE) |> 
@@ -198,19 +198,23 @@ for (i in 1:length(test_list)){
     )
   
   p1 <- ggplot(final_data, aes(x = sample, y = rel_conc)) +
-    geom_bar(final_summ_data, mapping = aes(x = fct_reorder(sample, rel_conc, .desc = TRUE), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
+    geom_bar(final_summ_data, mapping = aes(x = factor(sample, level = c("WT", "KO9", "KO35")), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
     geom_point(final_data, mapping = aes(sample, rel_conc, fill = sample), size = 2, shape = 21, color = "black", alpha = 0.5, stroke = 0.5) +
     geom_errorbar(final_summ_data, mapping = aes(sample, rel_conc, ymin = rel_conc - sem, ymax = rel_conc + sem), color = "black", width = 0.2) +
     geom_text(final_summ_data, mapping = aes(label = label), nudge_y = 0.2) +
     scale_y_continuous(expand = expansion(mult = c(0, .1))) +
     labs(x = "", y = "Relative Expression", title = paste(names(test_list)[i], "\n Expression", sep = "")) +
     theme_Publication() +
-    scale_fill_brewer(palette = "Dark2") +
-    scale_color_brewer(palette = "Dark2") +
+    scale_fill_manual(values = c("WT" = "#1b9e77",
+                                 "KO9" = "#d95f02",
+                                 "KO35" = "#7570b3")) +
+    scale_color_manual(values = c("WT" = "#1b9e77",
+                                  "KO9" = "#d95f02",
+                                  "KO35" = "#7570b3")) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
   
-  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 3, height = 4, units = "in", dpi = 600)
-  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".pdf", sep = ""), plot = p1, width = 3, height = 4, units = "in", dpi = 600)
+  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 2.5, height = 4, units = "in", dpi = 600)
+  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".pdf", sep = ""), plot = p1, width = 2.5, height = 4, units = "in", dpi = 600)
   
 }
 

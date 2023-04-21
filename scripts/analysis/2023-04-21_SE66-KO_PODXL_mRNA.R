@@ -5,8 +5,6 @@ library(RColorBrewer)
 library(broom)
 library(DescTools)
 
-### Custom ggplot Theme ###
-
 theme_Publication <- function(base_size=14, base_family="sans") {
   library(grid)
   library(ggthemes)
@@ -30,22 +28,18 @@ theme_Publication <- function(base_size=14, base_family="sans") {
             legend.direction = "horizontal",
             legend.key.size= unit(0.2, "cm"),
             legend.margin = margin(0, 0, 0, 0),
-            legend.title= element_blank(), 
-            legend.background = element_blank(),
+            legend.title = element_text(),
             plot.margin=unit(c(10,5,5,5),"mm"),
             strip.background=element_rect(colour="#f0f0f0",fill="#f0f0f0"),
             strip.text = element_text(face="bold")
     ))
-  
 }
 
-############################
-
 # Define pathway to the qPCR data
-data <- "data/raw/2023-03-27_131117_NT_SE66_CasRx_eRNA_MKLN1_ROX.xls"
+data <- "data/raw/2022-09-08_130626_SE66-KO_PODXL.xls"
 
 # Name the experiment
-experiment <- "SE66_CasRx_Array_eRNA_MKLN1_ROX"
+experiment <- "SE66-KO_PODXL_mRNA"
 
 # Create directories to save output files
 plots_path <- file.path(paste0("plots/", Sys.Date(), "_", experiment))
@@ -60,17 +54,18 @@ if(!dir.exists(tables_path)){
   dir.create(tables_path)
 }
 
-# Assign name of control reference sample
-ctrl <- "NT1"
-
 # Assign names of housekeeping normalization gene(s)
 ref <- c("GAPDH", "B-Actin")
 
-# Clean up data
+# Assign name of control reference sample
+ctrl <- "WT"
+
+
+
 qpcr_data <- read_excel(data, sheet = "Results", skip = 44, col_names = TRUE) |> 
   slice(1:(n()-5)) |> 
-  dplyr::filter(!`Sample Name` %in% c("NTC", "No Template", "NT")) |> 
-  dplyr::filter(!`Sample Name` %in% c("-RT", "RT-")) |>   
+  filter(!`Sample Name` == "NTC") |> 
+  filter(!`Sample Name` == "RT-") |> 
   separate(`Well Position`, into = c("row", "column"), sep = 1, convert = TRUE) |> 
   rename(primer = `Target Name`)
 
@@ -81,10 +76,16 @@ ggplot(qpcr_data, aes(x = column, y = row, fill = primer, label = `Sample Name`)
   scale_y_discrete(limits = c("P", "O", "N", "M", "L", "K", "J", "I", "H", "G", "F", "E", "D", "C", "B", "A")) +
   scale_x_continuous(breaks = 1:24)
 
-# Summarise and clean up data further
+qpcr_data <- qpcr_data |> 
+  filter(!grepl("66-5", `Sample Name`, ignore.case = TRUE)) |> 
+  filter(!grepl("66-25", `Sample Name`, ignore.case = TRUE))
+
+# Analyze qPCR data
+class(qpcr_data$CT)
+
 summ_data <- qpcr_data |> 
   group_by(`Sample Name`, primer) |> 
-  summarise(mean_Ct = mean(CT, na.rm = TRUE)) 
+  summarise(mean_Ct = mean(CT)) 
 
 summ_data <- summ_data |>
   separate(`Sample Name`, into = c("sample", "rep"), sep = " ", convert = TRUE)
@@ -92,7 +93,7 @@ summ_data <- summ_data |>
 ggplot(summ_data, aes(x = sample, y = mean_Ct, color = primer)) +
   geom_point()
 
-# Prepare reference data for analysis
+# Prepare reference data
 if (length(ref) > 1) {
   ref1_data <- summ_data |> 
     filter(primer == ref[1]) |> 
@@ -111,7 +112,7 @@ if (length(ref) > 1) {
     rename("ref_Ct" = "mean_Ct")
 }
 
-# Loop through data and analyze to create plots and perform statistical analysis of results
+# Loop through test samples and analyze the qPCR data
 test_data <- summ_data |> 
   filter(!primer %in% ref)
 
@@ -192,20 +193,21 @@ for (i in 1:length(test_list)){
     )
   
   p1 <- ggplot(final_data, aes(x = sample, y = rel_conc)) +
-    geom_bar(final_summ_data, mapping = aes(x = factor(sample, level = c("NT1", "SE66")), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
+    geom_bar(final_summ_data, mapping = aes(x = fct_reorder(sample, rel_conc, .desc = TRUE), y = rel_conc, fill = sample), stat = "identity", color = "black", width = 0.5) +
     geom_point(final_data, mapping = aes(sample, rel_conc, fill = sample), size = 2, shape = 21, color = "black", alpha = 0.5, stroke = 0.5) +
     geom_errorbar(final_summ_data, mapping = aes(sample, rel_conc, ymin = rel_conc - sem, ymax = rel_conc + sem), color = "black", width = 0.2) +
     geom_text(final_summ_data, mapping = aes(label = label), nudge_y = 0.2) +
     scale_y_continuous(expand = expansion(mult = c(0, .1))) +
     labs(x = "", y = "Relative Expression", title = paste(names(test_list)[i], "\n Expression", sep = "")) +
     theme_Publication() +
-    scale_fill_manual(values = c("NT1" = "gray30",
-                                 "SE66" = "red")) +
-    scale_color_manual(values = c("NT1" = "gray30",
-                                  "SE66" = "red")) +
+    scale_fill_manual(values = c("WT" = "#1b9e77",
+                                 "66-9" = "#d95f02",
+                                 "66-35" = "#7570b3")) +
+    scale_color_manual(values = c("WT" = "#1b9e77",
+                                  "66-9" = "#d95f02",
+                                  "66-35" = "#7570b3")) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
   
-  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 2, height = 4, units = "in", dpi = 600)
-  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".pdf", sep = ""), plot = p1, width = 2, height = 4, units = "in", dpi = 600)
-  
+  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 2.5, height = 4, units = "in", dpi = 600)
+  ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".pdf", sep = ""), plot = p1, width = 2.5, height = 4, units = "in", dpi = 600)
 }
