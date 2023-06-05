@@ -200,12 +200,12 @@ for (i in 1:length(test_list)){
     scale_y_continuous(expand = expansion(mult = c(0, .1))) +
     labs(x = "", y = "Relative Expression", title = paste(names(test_list)[i], "\n Expression", sep = "")) +
     theme_Publication() +
-    scale_fill_manual(values = c("WT" = "#1b9e77",
-                                 "66-9" = "#d95f02",
-                                 "66-35" = "#7570b3")) +
-    scale_color_manual(values = c("WT" = "#1b9e77",
-                                  "66-9" = "#d95f02",
-                                  "66-35" = "#7570b3")) +
+    scale_fill_manual(values = c("WT" = "gray30",
+                                 "66-9" = "#FA4616",
+                                 "66-35" = "red4")) +
+    scale_color_manual(values = c("WT" = "gray30",
+                                  "66-9" = "#FA4616",
+                                  "66-35" = "red4")) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
   
   ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 2.5, height = 4, units = "in", dpi = 600)
