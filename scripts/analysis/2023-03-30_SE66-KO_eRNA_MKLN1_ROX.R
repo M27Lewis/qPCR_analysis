@@ -64,7 +64,7 @@ if(!dir.exists(tables_path)){
 ctrl <- "WT"
 
 # Assign names of housekeeping normalization gene(s)
-ref <- c("B-Actin", "GAPDH")
+ref <- c("B-Actin")
 
 # Clean up data
 qpcr_data <- read_excel(data, sheet = "Results", skip = 44, col_names = TRUE) |> 
@@ -75,8 +75,8 @@ qpcr_data <- read_excel(data, sheet = "Results", skip = 44, col_names = TRUE) |>
   rename(primer = `Target Name`) |> 
   mutate(CT = as.numeric(na_if(CT, "Undetermined"))) #Converts "Undetermined" wells to "NA" and resets class to numeric
 
-#qpcr_data <- qpcr_data |> 
-  #filter(!primer == "GAPDH") #Remove GAPDH for analysis
+qpcr_data <- qpcr_data |> 
+  filter(!primer == "GAPDH") #Remove GAPDH for analysis
 
 # Visualize plate layout
 ggplot(qpcr_data, aes(x = column, y = row, fill = primer, label = `Sample Name`)) +
@@ -205,12 +205,12 @@ for (i in 1:length(test_list)){
     scale_y_continuous(expand = expansion(mult = c(0, .1))) +
     labs(x = "", y = "Relative Expression", title = paste(names(test_list)[i], "\n Expression", sep = "")) +
     theme_Publication() +
-    scale_fill_manual(values = c("WT" = "#1b9e77",
-                                 "KO9" = "#d95f02",
-                                 "KO35" = "#7570b3")) +
-    scale_color_manual(values = c("WT" = "#1b9e77",
-                                  "KO9" = "#d95f02",
-                                  "KO35" = "#7570b3")) +
+    scale_fill_manual(values = c("WT" = "gray30",
+                                 "KO9" = "#FA4616",
+                                 "KO35" = "red4")) +
+    scale_color_manual(values = c("WT" = "gray30",
+                                  "KO9" = "#FA4616",
+                                  "KO35" = "red4")) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
   
   ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 2.5, height = 4, units = "in", dpi = 600)
