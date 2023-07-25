@@ -1,5 +1,5 @@
 ---
-title: "qPCR Analysis Template"
+title: "SE6 CasRx Array Caitlin"
 author: "Michael Lewis"
 date: "`r format(Sys.time(), '%m/%d/%Y')`"
 output: html_document
@@ -54,10 +54,10 @@ theme_Publication <- function(base_size=14, base_family="sans") {
 # Setup for analysis
 ```{r}
 # Define pathway to the qPCR data
-data <- "data_path"
+data <- "data/raw/2023-03-02_SE6_Cas13d_Array.xls"
 
 # Name the experiment
-experiment <- "experiment_name"
+experiment <- "SE6_CasRx_array_qPCR_Caitlin"
 
 # Create directories to save output files
 plots_path <- file.path(paste0("plots/", Sys.Date(), "_", experiment))
@@ -73,10 +73,10 @@ if(!dir.exists(tables_path)){
 }
 
 # Assign names of housekeeping normalization gene(s)
-ref <- c("GAPDH", "ACTB")
+ref <- c("GAPDH", "Bactin")
 
 # Assign name of control reference sample
-ctrl <- "control"
+ctrl <- "NT1"
 
 ```
 
@@ -86,17 +86,10 @@ ctrl <- "control"
 # Import qPCR data and remove unnecessary data
 qpcr_data <- read_excel(data, sheet = "Results", skip = 44, col_names = TRUE) |> 
   slice(1:(n()-5)) |> 
-  filter(!`Sample Name` %in% c("NTC", "NT")) |> 
+  filter(!`Sample Name` %in% c("NTC", "NoT")) |> 
   filter(!`Sample Name` %in% c("RT-", "NoRT")) |> 
-  separate(`Well Position`, into = c("row", "column"), sep = 1, convert = TRUE) |> 
-  rename(primer = `Target Name`)
+  rename(primer = `Target Name`) 
 
-# Visualize plate layout
-ggplot(qpcr_data, aes(x = column, y = row, fill = primer, label = `Sample Name`)) +
-  geom_tile(colour = "black") +
-  geom_text() +
-  scale_y_discrete(limits = c("P", "O", "N", "M", "L", "K", "J", "I", "H", "G", "F", "E", "D", "C", "B", "A")) +
-  scale_x_continuous(breaks = 1:24)
 ```
 
 
@@ -104,12 +97,16 @@ ggplot(qpcr_data, aes(x = column, y = row, fill = primer, label = `Sample Name`)
 ```{r}
 class(qpcr_data$CT)
 
+qpcr_data$CT <- as.numeric(qpcr_data$CT)
+
 summ_data <- qpcr_data |> 
   group_by(`Sample Name`, primer) |> 
   summarise(mean_Ct = mean(CT)) 
 
 summ_data <- summ_data |>
-  separate(`Sample Name`, into = c("sample", "rep"), sep = "-", convert = TRUE)
+  separate(`Sample Name`, into = c("sample", "rep"), sep = -1, convert = TRUE) #separate out the last number into a new column as the rep number
+
+summ_data$sample <- gsub("-", "", summ_data$sample) #Remove the dashes from the sample names
 
 ggplot(summ_data, aes(x = sample, y = mean_Ct, color = primer)) +
   geom_point()
@@ -227,11 +224,13 @@ for (i in 1:length(test_list)){
     scale_y_continuous(expand = expansion(mult = c(0, .1))) +
     labs(x = "", y = "Relative Expression", title = paste(names(test_list)[i], "\n Expression", sep = "")) +
     theme_Publication() +
-    scale_fill_brewer(palette = "Dark2") +
-    scale_color_brewer(palette = "Dark2") +
-    #scale_fill_manual(values = c("SCR" = "gray30", "SE66" = "red")) +
-    #scale_color_manual(values = c("SCR" = "gray30", "SE66" = "red")) +
+    scale_fill_manual(values = c("NT1" = "gray30",
+                               "SE6" = "red")) +
+    scale_color_manual(values = c("NT1" = "gray30",
+                               "SE6" = "red")) +
     theme(legend.position = "none", axis.text.x = element_text(angle = 45, hjust = 1))
+  
+  p1
   
   ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".png", sep = ""), plot = p1, width = 2, height = 4, units = "in", dpi = 600)
   ggsave(paste(plots_path, "/", names(test_list)[i], "-", experiment, ".pdf", sep = ""), plot = p1, width = 2, height = 4, units = "in", dpi = 600)
